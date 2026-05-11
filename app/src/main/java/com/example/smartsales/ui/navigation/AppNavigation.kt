@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.smartsales.ui.screens.login.LoginScreen
+import com.example.smartsales.ui.screens.productos.ProductosScreen
 
 @Composable
 fun AppNavigation() {
@@ -25,7 +26,7 @@ fun AppNavigation() {
         }
 
         composable(Routes.Productos.route) {
-            PantallaTemporal("Lista de Productos")
+            ProductosScreen(navController = navController)
         }
 
         composable(Routes.Ventas.route) {
