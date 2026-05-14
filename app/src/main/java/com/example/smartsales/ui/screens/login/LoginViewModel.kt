@@ -10,10 +10,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.example.smartsales.data.local.datastore.AuthPreferences
+import kotlinx.coroutines.flow.first
+import com.example.smartsales.util.NetworkUtils
 
 @HiltViewModel // Fundamental para que Hilt le inyecte el repositorio
 class LoginViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val authPreferences: AuthPreferences,
+    private val networkUtils: NetworkUtils
 ) : ViewModel() {
 
     // 1. Estado para el correo y la contraseña
@@ -26,6 +31,26 @@ class LoginViewModel @Inject constructor(
     // 2. Estado de la pantalla (Carga, Éxito, Error)
     private val _uiState = MutableStateFlow(LoginState())
     val uiState: StateFlow<LoginState> = _uiState.asStateFlow()
+
+    // El bloque init se ejecuta apenas se crea el ViewModel
+    init {
+        verificarSesionGuardada()
+    }
+
+    // Función para saltar el login si ya tenemos token
+    private fun verificarSesionGuardada() {
+        viewModelScope.launch {
+            // Leemos el token actual de DataStore
+            val token = authPreferences.getToken.first()
+
+            // Solo navegamos directo al catálogo si NO hay internet Y existe un token.
+            // Si hay internet (isNetworkAvailable() es true), la condición no se cumple
+            // y el usuario se queda en la pantalla de Login obligatoriamente.
+            if (!networkUtils.isNetworkAvailable() && !token.isNullOrEmpty()) {
+                _uiState.update { it.copy(isSuccess = true) }
+            }
+        }
+    }
 
     // 3. Eventos que vienen desde la interfaz de usuario (Compose)
     fun onEmailChange(newEmail: String) {
