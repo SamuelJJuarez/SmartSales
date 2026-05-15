@@ -90,4 +90,17 @@ dependencies {
     // 6. ViewModels y Lifecycle
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0") // Para StateFlow
+
+    // 7. CameraX (Para controlar la cámara en Jetpack Compose)
+    val camerax_version = "1.6.1"
+    implementation("androidx.camera:camera-core:${camerax_version}")
+    implementation("androidx.camera:camera-camera2:${camerax_version}")
+    implementation("androidx.camera:camera-lifecycle:${camerax_version}")
+    implementation("androidx.camera:camera-view:${camerax_version}")
+
+    // 8. Google ML Kit (Para escanear el código de barras offline)
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
+    // 9. Accompanist Permissions (Librería recomendada de Google para pedir permisos en Compose)
+    implementation("com.google.accompanist:accompanist-permissions:0.37.3")
 }

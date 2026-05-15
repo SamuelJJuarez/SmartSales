@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.smartsales.ui.screens.login.LoginScreen
 import com.example.smartsales.ui.screens.productos.ProductosScreen
+import com.example.smartsales.ui.screens.escaner.EscanerScreen
 
 @Composable
 fun AppNavigation() {
@@ -35,6 +36,10 @@ fun AppNavigation() {
 
         composable(Routes.Dashboard.route) {
             PantallaTemporal("Dashboard y Gráficas")
+        }
+
+        composable(Routes.Escaner.route) {
+            EscanerScreen(navController = navController)
         }
     }
 }
