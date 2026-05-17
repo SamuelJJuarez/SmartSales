@@ -1,54 +1,94 @@
 package com.example.smartsales.ui.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.smartsales.ui.screens.dashboard.DashboardScreen
+import com.example.smartsales.ui.screens.escaner.EscanerScreen
 import com.example.smartsales.ui.screens.login.LoginScreen
 import com.example.smartsales.ui.screens.productos.ProductosScreen
-import com.example.smartsales.ui.screens.escaner.EscanerScreen
 import com.example.smartsales.ui.screens.ventas.VentasScreen
 
 @Composable
 fun AppNavigation() {
-    // Este controlador maneja la pila de pantallas (el historial hacia atrás)
     val navController = rememberNavController()
 
-    // NavHost es el contenedor donde se dibujan las pantallas.
-    // Le decimos que inicie en el Login.
-    NavHost(navController = navController, startDestination = Routes.Login.route) {
+    // Observamos la ruta actual para saber si mostramos o no la barra inferior
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
-        composable(Routes.Login.route) {
-            LoginScreen(navController = navController)
+    // No queremos ver el menú inferior en el Login ni en la Cámara
+    val showBottomBar = currentRoute in listOf(
+        Routes.Dashboard.route,
+        Routes.Productos.route,
+        Routes.Ventas.route
+    )
+
+    Scaffold(
+        bottomBar = {
+            if (showBottomBar) {
+                BottomNavigationBar(navController = navController, currentRoute = currentRoute)
+            }
         }
-
-        composable(Routes.Productos.route) {
-            ProductosScreen(navController = navController)
-        }
-
-        composable(Routes.Ventas.route) {
-            VentasScreen(navController = navController)
-        }
-
-        composable(Routes.Dashboard.route) {
-            PantallaTemporal("Dashboard y Gráficas")
-        }
-
-        composable(Routes.Escaner.route) {
-            EscanerScreen(navController = navController)
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = Routes.Login.route,
+            modifier = Modifier.padding(innerPadding) // Evita que la barra tape el contenido
+        ) {
+            composable(Routes.Login.route) { LoginScreen(navController = navController) }
+            composable(Routes.Dashboard.route) { DashboardScreen(navController = navController) }
+            composable(Routes.Productos.route) { ProductosScreen(navController = navController) }
+            composable(Routes.Ventas.route) { VentasScreen(navController = navController) }
+            composable(Routes.Escaner.route) { EscanerScreen(navController = navController) }
         }
     }
 }
 
-// Función temporal solo para que veas algo en la pantalla y no de error
+// El componente de la barra inferior
 @Composable
-fun PantallaTemporal(titulo: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = titulo)
+fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
+    NavigationBar {
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.Dashboard, contentDescription = "Panel") },
+            label = { Text("Panel") },
+            selected = currentRoute == Routes.Dashboard.route,
+            onClick = {
+                navController.navigate(Routes.Dashboard.route) {
+                    popUpTo(Routes.Dashboard.route) { inclusive = true }
+                }
+            }
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.Inventory, contentDescription = "Inventario") },
+            label = { Text("Inventario") },
+            selected = currentRoute == Routes.Productos.route,
+            onClick = {
+                navController.navigate(Routes.Productos.route) {
+                    popUpTo(Routes.Dashboard.route)
+                }
+            }
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.ShoppingCart, contentDescription = "Vender") },
+            label = { Text("Vender") },
+            selected = currentRoute == Routes.Ventas.route,
+            onClick = {
+                navController.navigate(Routes.Ventas.route) {
+                    popUpTo(Routes.Dashboard.route)
+                }
+            }
+        )
     }
 }

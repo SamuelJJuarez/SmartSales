@@ -32,13 +32,7 @@ fun LoginScreen(
         if (uiState.isSuccess) {
             // Navegamos al Dashboard y borramos el Login del historial
             // para que el usuario no regrese al presionar "Atrás"
-            //navController.navigate(Routes.Dashboard.route) {
-              //  popUpTo(Routes.Login.route) { inclusive = true }
-            //}
-            //navController.navigate(Routes.Productos.route) {
-                //popUpTo(Routes.Login.route) { inclusive = true }
-            //}
-            navController.navigate(Routes.Ventas.route) {
+            navController.navigate(Routes.Dashboard.route) {
                 popUpTo(Routes.Login.route) { inclusive = true }
             }
         }
