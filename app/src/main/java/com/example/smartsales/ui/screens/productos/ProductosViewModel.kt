@@ -3,6 +3,7 @@ package com.example.smartsales.ui.screens.productos
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartsales.domain.repository.ProductoRepository
+import com.example.smartsales.domain.repository.VentaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProductosViewModel @Inject constructor(
-    private val productoRepository: ProductoRepository
+    private val productoRepository: ProductoRepository,
+    private val ventaRepository: VentaRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductosState())
@@ -53,6 +55,7 @@ class ProductosViewModel @Inject constructor(
             _uiState.update { it.copy(isRefreshing = true) }
 
             try {
+                ventaRepository.sincronizarVentasPendientes()
                 productoRepository.sincronizarProductos()
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "No se pudo sincronizar. Mostrando datos locales.") }

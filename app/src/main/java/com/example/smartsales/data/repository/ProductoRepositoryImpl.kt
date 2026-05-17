@@ -44,20 +44,31 @@ class ProductoRepositoryImpl @Inject constructor(
 
     // 3. Buscar para el escáner (Primero intenta local, luego red)
     override suspend fun obtenerProductoPorCodigo(codigo: String): ProductoEntity? {
-        // Buscamos primero en el celular
+        // 1. Buscamos primero en el celular (SQLite)
         val productoLocal = dao.obtenerProductoPorCodigo(codigo)
         if (productoLocal != null) {
             return productoLocal
         }
 
-        // Si no está localmente, podríamos intentar buscarlo en la API como respaldo
-        // (Esto es útil si hay miles de productos y no queremos descargar todos al inicio)
+        // 2. Si no está local, intentamos buscarlo en la API de Express (Respaldo)
         return try {
-            val response = api.getProductos() // Nota: Aquí idealmente usaríamos el endpoint por código que creaste
-            // Para simplificar ahora, devolvemos null si no está en la base de datos
-            null
+            // Hacemos la petición a tu backend
+            val response = api.getProductos()
+
+            if (response.isSuccessful && response.body() != null) {
+                // Buscamos el producto específico en la lista que nos devolvió el servidor
+                val productoDto = response.body()!!.find { it.codigo_barras == codigo }
+
+                if (productoDto != null) {
+                    // Si lo encontramos, lo convertimos a Entity y lo guardamos en Room para el futuro
+                    val entidad = productoDto.toEntity()
+                    dao.insertarProductos(listOf(entidad))
+                    return entidad // Y lo devolvemos para que la venta pueda continuar
+                }
+            }
+            null // Si no está ni en la BD local ni en el servidor, devolvemos null
         } catch (e: Exception) {
-            null
+            null // Si no hay internet y no estaba localmente, falla de forma segura
         }
     }
 }

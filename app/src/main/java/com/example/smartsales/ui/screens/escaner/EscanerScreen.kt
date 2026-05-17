@@ -25,40 +25,28 @@ import java.util.concurrent.Executors
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun EscanerScreen(navController: NavController) {
-    // 1. Manejo del permiso de cámara
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
-    // Estado para guardar el último código leído
-    var scannedCode by remember { mutableStateOf<String?>(null) }
+    // NUEVO: Un candado de estado para evitar escaneos múltiples
+    var yaEscaneado by remember { mutableStateOf(false) }
 
     if (cameraPermissionState.status.isGranted) {
-        // 2. Si hay permiso, mostramos la cámara a pantalla completa
         Box(modifier = Modifier.fillMaxSize()) {
             CameraPreviewView(
                 onBarcodeScanned = { codigo ->
-                    scannedCode = codigo
-                    // Aquí en el futuro regresaremos a la pantalla de ventas con el código listo
+                    // NUEVO: Solo procesamos si NO hemos escaneado aún
+                    if (!yaEscaneado) {
+                        yaEscaneado = true // Cerramos el candado inmediatamente
+
+                        // Enviamos el código y cerramos la pantalla UNA SOLA VEZ
+                        navController.previousBackStackEntry?.savedStateHandle?.set("barcode_scanned", codigo)
+                        navController.popBackStack()
+                    }
                 }
             )
-
-            // 3. Feedback Visual: Mostramos el código flotando si detectó uno
-            scannedCode?.let { codigo ->
-                Card(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 48.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                ) {
-                    Text(
-                        text = "Código detectado: $codigo",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-            }
         }
     } else {
-        // 4. Si no hay permiso, mostramos un botón para pedirlo
+        // 3. Si no hay permiso, mostramos un botón para pedirlo
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,

@@ -35,7 +35,10 @@ fun LoginScreen(
             //navController.navigate(Routes.Dashboard.route) {
               //  popUpTo(Routes.Login.route) { inclusive = true }
             //}
-            navController.navigate(Routes.Productos.route) {
+            //navController.navigate(Routes.Productos.route) {
+                //popUpTo(Routes.Login.route) { inclusive = true }
+            //}
+            navController.navigate(Routes.Ventas.route) {
                 popUpTo(Routes.Login.route) { inclusive = true }
             }
         }
