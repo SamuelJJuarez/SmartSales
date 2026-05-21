@@ -1,9 +1,11 @@
 package com.example.smartsales.di
 
 import com.example.smartsales.data.repository.AuthRepositoryImpl
+import com.example.smartsales.data.repository.DashboardRepositoryImpl
 import com.example.smartsales.data.repository.ProductoRepositoryImpl
 import com.example.smartsales.data.repository.VentaRepositoryImpl
 import com.example.smartsales.domain.repository.AuthRepository
+import com.example.smartsales.domain.repository.DashboardRepository
 import com.example.smartsales.domain.repository.ProductoRepository
 import com.example.smartsales.domain.repository.VentaRepository
 import dagger.Binds
@@ -33,4 +35,10 @@ abstract class RepositoryModule {
     abstract fun bindVentaRepository(
         ventaRepositoryImpl: VentaRepositoryImpl
     ): VentaRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDashboardRepository(
+        dashboardRepositoryImpl: DashboardRepositoryImpl
+    ): DashboardRepository
 }

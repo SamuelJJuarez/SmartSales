@@ -1,5 +1,6 @@
 package com.example.smartsales.data.remote
 
+import com.example.smartsales.data.remote.dto.DashboardResponse
 import com.example.smartsales.data.remote.dto.LoginRequest
 import com.example.smartsales.data.remote.dto.LoginResponse
 import com.example.smartsales.data.remote.dto.ProductoDto
@@ -8,6 +9,8 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
 
 interface SmartSalesApi {
 
@@ -21,7 +24,19 @@ interface SmartSalesApi {
     @GET("api/productos")
     suspend fun getProductos(): Response<List<ProductoDto>>
 
-    // Aquí agregaremos después las ventas y el dashboard
     @POST("api/ventas")
     suspend fun registrarVenta(@Body request: VentaRequest): Response<Any>
+
+    @POST("api/productos")
+    suspend fun crearProducto(@Body producto: ProductoDto): Response<ProductoDto>
+
+    @PUT("api/productos/{id}")
+    suspend fun actualizarProducto(
+        @Path("id") id: Int,
+        @Body producto: ProductoDto
+    ): Response<ProductoDto>
+
+    // Endpoint del Dashboard
+    @GET("api/dashboard")
+    suspend fun obtenerMetricasDashboard(): Response<DashboardResponse>
 }

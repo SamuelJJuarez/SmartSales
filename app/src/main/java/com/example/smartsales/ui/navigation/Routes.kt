@@ -6,4 +6,6 @@ sealed class Routes(val route: String) {
     object Escaner : Routes("escaner_screen")
     object Ventas : Routes("ventas_screen")
     object Dashboard : Routes("dashboard_screen")
+
+    object GestionProducto : Routes("gestion_producto")
 }

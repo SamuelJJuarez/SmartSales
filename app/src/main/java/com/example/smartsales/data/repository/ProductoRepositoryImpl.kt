@@ -5,6 +5,7 @@ import com.example.smartsales.data.local.dao.ProductoDao
 import com.example.smartsales.data.local.entity.ProductoEntity
 import com.example.smartsales.data.mapper.toEntity
 import com.example.smartsales.data.remote.SmartSalesApi
+import com.example.smartsales.data.remote.dto.ProductoDto
 import com.example.smartsales.domain.repository.ProductoRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -69,6 +70,38 @@ class ProductoRepositoryImpl @Inject constructor(
             null // Si no está ni en la BD local ni en el servidor, devolvemos null
         } catch (e: Exception) {
             null // Si no hay internet y no estaba localmente, falla de forma segura
+        }
+    }
+
+    override suspend fun guardarProducto(producto: ProductoEntity, esEdicion: Boolean): Result<Unit> {
+        return try {
+            // 1. Convertimos Entity a DTO para enviarlo a Node.js
+            val dto = ProductoDto(
+                id = if (esEdicion) producto.id else null,
+                codigo_barras = producto.codigo_barras,
+                nombre = producto.nombre,
+                descripcion = producto.descripcion,
+                precio = producto.precio,
+                stock = producto.stock,
+                activo = producto.activo
+            )
+
+            val response = if (esEdicion) {
+                api.actualizarProducto(producto.id, dto)
+            } else {
+                api.crearProducto(dto)
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                // 2. Si el servidor lo acepta, lo guardamos en Room
+                val productoGuardado = response.body()!!.toEntity()
+                dao.insertarProductos(listOf(productoGuardado))
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Error al guardar en el servidor"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Sin conexión: No se pueden crear o editar productos offline"))
         }
     }
 }

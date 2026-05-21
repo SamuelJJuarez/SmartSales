@@ -10,5 +10,6 @@ data class ProductoEntity(
     val nombre: String,
     val descripcion: String?,
     val precio: Double,
-    val stock: Int
+    val stock: Int,
+    val activo: Boolean = true
 )

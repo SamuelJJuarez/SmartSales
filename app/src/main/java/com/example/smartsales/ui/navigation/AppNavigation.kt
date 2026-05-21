@@ -19,6 +19,9 @@ import com.example.smartsales.ui.screens.escaner.EscanerScreen
 import com.example.smartsales.ui.screens.login.LoginScreen
 import com.example.smartsales.ui.screens.productos.ProductosScreen
 import com.example.smartsales.ui.screens.ventas.VentasScreen
+import com.example.smartsales.ui.screens.productos.gestion.GestionProductoScreen
+import com.example.smartsales.data.local.entity.ProductoEntity
+import com.google.gson.Gson
 
 @Composable
 fun AppNavigation() {
@@ -52,6 +55,16 @@ fun AppNavigation() {
             composable(Routes.Productos.route) { ProductosScreen(navController = navController) }
             composable(Routes.Ventas.route) { VentasScreen(navController = navController) }
             composable(Routes.Escaner.route) { EscanerScreen(navController = navController) }
+            composable(Routes.GestionProducto.route) {
+                // Recuperamos el producto a editar si es que la pantalla anterior guardó uno
+                val productoJson = navController.previousBackStackEntry?.savedStateHandle?.get<String>("producto_json")
+                val productoAEditar = productoJson?.let { Gson().fromJson(it, ProductoEntity::class.java) }
+
+                GestionProductoScreen(
+                    navController = navController,
+                    productoAEditar = productoAEditar
+                )
+            }
         }
     }
 }

@@ -13,4 +13,6 @@ interface ProductoRepository {
 
     // Buscar un producto específico por su código de barras
     suspend fun obtenerProductoPorCodigo(codigo: String): ProductoEntity?
+
+    suspend fun guardarProducto(producto: ProductoEntity, esEdicion: Boolean): Result<Unit>
 }

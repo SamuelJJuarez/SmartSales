@@ -11,7 +11,7 @@ import com.example.smartsales.data.local.entity.VentaEntity
 // Aquí listamos todas las entidades que tendrá la BD local
 @Database(
     entities = [ProductoEntity::class, VentaEntity::class, DetalleVentaEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class SmartSalesDatabase : RoomDatabase() {
