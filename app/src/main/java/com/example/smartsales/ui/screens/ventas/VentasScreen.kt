@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.smartsales.ui.navigation.Routes
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.ui.text.style.TextAlign
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,7 +137,12 @@ fun VentasScreen(
             } else {
                 LazyColumn(modifier = Modifier.weight(1f)) {
                     items(uiState.carrito) { item ->
-                        ItemCarritoView(item)
+                        ItemCarritoView(
+                            item = item,
+                            // Conectamos los clics de los botones con el ViewModel
+                            onAumentar = { viewModel.aumentarCantidad(item.producto.id) },
+                            onDisminuir = { viewModel.disminuirCantidad(item.producto.id) }
+                        )
                     }
                 }
             }
@@ -178,24 +185,61 @@ fun VentasScreen(
 
 // Fila visual para cada producto en el carrito
 @Composable
-fun ItemCarritoView(item: ItemCarrito) {
+fun ItemCarritoView(item: ItemCarrito, onAumentar: () -> Unit, onDisminuir: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Columna izquierda: Nombre y precio unitario
         Column(modifier = Modifier.weight(1f)) {
             Text(item.producto.nombre, fontWeight = FontWeight.Bold)
             Text(
-                "${item.cantidad} x $${item.producto.precio}",
+                text = "$${item.producto.precio} c/u",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+
+        // Columna central: Los controles de cantidad (+ y -)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 8.dp)
+        ) {
+            // Botón de Menos / Eliminar
+            IconButton(
+                onClick = onDisminuir,
+                modifier = Modifier.size(32.dp),
+                colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.Remove, contentDescription = "Quitar")
+            }
+
+            // Texto de la cantidad actual
+            Text(
+                text = "${item.cantidad}",
+                modifier = Modifier.padding(horizontal = 8.dp),
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            // Botón de Más
+            IconButton(
+                onClick = onAumentar,
+                modifier = Modifier.size(32.dp),
+                colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Agregar")
+            }
+        }
+
+        // Columna derecha: El Subtotal de este producto
         Text(
-            "$${item.subtotal}",
+            text = "$${String.format("%.2f", item.subtotal)}",
+            modifier = Modifier.width(70.dp),
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.End
         )
     }
 }

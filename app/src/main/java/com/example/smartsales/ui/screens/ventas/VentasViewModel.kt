@@ -91,7 +91,54 @@ class VentasViewModel @Inject constructor(
         }
     }
 
-    // 2. Cobrar / Registrar la Venta (El botón final)
+    // 2. Aumentar la cantidad de un producto ya escaneado
+    fun aumentarCantidad(productoId: Int) {
+        val carritoActual = _uiState.value.carrito.toMutableList()
+        val index = carritoActual.indexOfFirst { it.producto.id == productoId }
+
+        if (index != -1) {
+            val item = carritoActual[index]
+            // Verificamos que no sobrepase el stock disponible en la tienda
+            if (item.cantidad < item.producto.stock) {
+                carritoActual[index] = item.copy(cantidad = item.cantidad + 1)
+                actualizarCarritoYTotal(carritoActual)
+            } else {
+                _uiState.update { it.copy(error = "Stock máximo alcanzado para: ${item.producto.nombre}") }
+            }
+        }
+    }
+
+    // 3. Disminuir la cantidad (y eliminar si llega a 0)
+    fun disminuirCantidad(productoId: Int) {
+        val carritoActual = _uiState.value.carrito.toMutableList()
+        val index = carritoActual.indexOfFirst { it.producto.id == productoId }
+
+        if (index != -1) {
+            val item = carritoActual[index]
+            if (item.cantidad > 1) {
+                // Si hay más de 1, simplemente restamos
+                carritoActual[index] = item.copy(cantidad = item.cantidad - 1)
+            } else {
+                // Si es 1 y le damos al menos, lo sacamos del carrito
+                carritoActual.removeAt(index)
+            }
+            actualizarCarritoYTotal(carritoActual)
+        }
+    }
+
+    // 4. Función auxiliar para recalcular y repintar la pantalla
+    private fun actualizarCarritoYTotal(nuevoCarrito: List<ItemCarrito>) {
+        val nuevoTotal = nuevoCarrito.sumOf { it.subtotal }
+        _uiState.update {
+            it.copy(
+                carrito = nuevoCarrito,
+                total = nuevoTotal
+            )
+        }
+    }
+
+
+    // 5. Cobrar / Registrar la Venta (El botón final)
     fun registrarVenta() {
         val carritoActual = _uiState.value.carrito
         val totalActual = _uiState.value.total
@@ -115,7 +162,7 @@ class VentasViewModel @Inject constructor(
                 )
             }
 
-            // Mandamos todo al Repositorio (Él decidirá si lo manda a Node.js o lo guarda offline)
+            // Mandamos al Repositorio (Él decidirá si lo manda a Node.js o lo guarda offline)
             val result = ventaRepository.registrarVenta(detallesEntity, totalActual)
 
             result.onSuccess {
