@@ -5,8 +5,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +30,18 @@ fun ProductosScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    val scannedCode = savedStateHandle?.get<String>("barcode_scanned")
+
+    LaunchedEffect(scannedCode) {
+        if (!scannedCode.isNullOrEmpty()) {
+            // Mandamos el código escaneado directo al buscador
+            viewModel.onSearchQueryChange(scannedCode)
+            // Borramos el estado para que no se atore en el buscador al girar la pantalla
+            savedStateHandle.remove<String>("barcode_scanned")
+        }
+    }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -66,30 +80,65 @@ fun ProductosScreen(
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            if (uiState.isRefreshing) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter))
-            }
+        // CAMBIO PRINCIPAL: Usamos Column para apilar la barra y la lista
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
 
-            if (uiState.isLoading && uiState.productos.isEmpty()) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.productos.isEmpty()) {
-                Text(text = "No hay productos disponibles.", modifier = Modifier.align(Alignment.Center))
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.productos) { producto ->
-                        ProductoItem(
-                            producto = producto,
-                            onEditClick = {
-                                val productoJson = Gson().toJson(producto)
-                                navController.currentBackStackEntry?.savedStateHandle?.set("producto_json", productoJson)
-                                navController.navigate(Routes.GestionProducto.route)
-                            }
-                        )
+            // 1. LA BARRA DE BÚSQUEDA
+            OutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = { viewModel.onSearchQueryChange(it) },
+                label = { Text("Buscar por nombre o código") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                singleLine = true,
+                leadingIcon = {
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "Buscar")
+                },
+                trailingIcon = {
+                    IconButton(onClick = { navController.navigate(Routes.Escaner.route) }) {
+                        Icon(imageVector = Icons.Default.CameraAlt, contentDescription = "Escanear Código")
+                    }
+                }
+            )
+
+            // 2. EL CONTENEDOR DE LA LISTA (Usa weight(1f) para tomar el espacio restante)
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                if (uiState.isRefreshing) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter))
+                }
+
+                if (uiState.isLoading && uiState.productos.isEmpty()) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                } else if (uiState.productos.isEmpty()) {
+                    // Mensaje dinámico si está buscando o si el inventario está vacío
+                    val mensaje = if (uiState.searchQuery.isNotBlank()) {
+                        "No se encontraron resultados."
+                    } else {
+                        "No hay productos disponibles."
+                    }
+                    Text(text = mensaje, modifier = Modifier.align(Alignment.Center))
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        // Añadimos margen inferior para que el botón flotante no tape el último elemento
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(uiState.productos) { producto ->
+                            ProductoItem(
+                                producto = producto,
+                                onEditClick = {
+                                    val productoJson = Gson().toJson(producto)
+                                    navController.currentBackStackEntry?.savedStateHandle?.set("producto_json", productoJson)
+                                    navController.navigate(Routes.GestionProducto.route)
+                                }
+                            )
+                        }
                     }
                 }
             }
