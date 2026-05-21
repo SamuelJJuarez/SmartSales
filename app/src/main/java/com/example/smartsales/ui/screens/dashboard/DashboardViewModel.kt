@@ -2,6 +2,9 @@ package com.example.smartsales.ui.screens.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smartsales.data.remote.dto.ProductoTopDto
+import com.example.smartsales.data.remote.dto.VentaDiaDto
+import com.example.smartsales.domain.repository.DashboardRepository
 import com.example.smartsales.domain.repository.ProductoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,43 +14,54 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// El estado visual de nuestro panel de control
+// Actualizamos el estado para incluir los datos de la API
 data class DashboardState(
-    val totalProductosRegistrados: Int = 0,
-    val valorTotalInventario: Double = 0.0,
-    val productosBajoStock: Int = 0, // Productos con menos de 10 unidades
-    val isLoading: Boolean = true
+    val ingresosTotalesNube: Double = 0.0,
+    val topProductos: List<ProductoTopDto> = emptyList(),
+    val totalProductosLocales: Int = 0,
+    val productosBajoStock: Int = 0,
+    val isLoading: Boolean = true,
+    val error: String? = null,
+    val ventasPorDia: List<VentaDiaDto> = emptyList()
 )
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val productoRepository: ProductoRepository
+    private val productoRepository: ProductoRepository,
+    private val dashboardRepository: DashboardRepository // Inyectamos el nuevo repo
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardState())
     val uiState: StateFlow<DashboardState> = _uiState.asStateFlow()
 
     init {
-        calcularMetricas()
+        cargarDatos()
     }
 
-    private fun calcularMetricas() {
+    fun cargarDatos() {
+        _uiState.update { it.copy(isLoading = true, error = null) }
+
         viewModelScope.launch {
-            // Escuchamos los cambios en Room en tiempo real
-            productoRepository.obtenerProductosLocales().collect { listaProductos ->
+            // 1. Cargamos datos de la nube (Ingresos y Top Ventas)
+            dashboardRepository.obtenerMetricasNube()
+                .onSuccess { datosNube ->
+                    _uiState.update {
+                        it.copy(
+                            ingresosTotalesNube = datosNube.ingresos_totales,
+                            topProductos = datosNube.productos_top
+                        )
+                    }
+                }
+                .onFailure { excepcion ->
+                    _uiState.update { it.copy(error = excepcion.message) }
+                }
 
-                val totalItems = listaProductos.size
-
-                // Sumamos (precio * stock) de todos los productos
-                val valorInventario = listaProductos.sumOf { it.precio * it.stock }
-
-                // Contamos cuántos productos están a punto de agotarse
-                val bajoStock = listaProductos.count { it.stock < 10 }
-
+            // 2. Cargamos datos locales (Stock y Alertas)
+            productoRepository.obtenerProductosLocales().collect { lista ->
+                val bajoStock = lista.count { it.stock < 10 && it.activo }
                 _uiState.update {
                     it.copy(
-                        totalProductosRegistrados = totalItems,
-                        valorTotalInventario = valorInventario,
+                        totalProductosLocales = lista.filter { p -> p.activo }.size,
                         productosBajoStock = bajoStock,
                         isLoading = false
                     )

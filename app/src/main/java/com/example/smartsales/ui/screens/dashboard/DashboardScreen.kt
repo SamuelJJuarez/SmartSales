@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +17,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.smartsales.ui.components.VentasBarChart
+import com.example.smartsales.ui.components.VentasLineChart
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,7 +40,7 @@ fun DashboardScreen(
             )
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
+        if (uiState.isLoading && uiState.ingresosTotalesNube == 0.0) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -49,39 +53,110 @@ fun DashboardScreen(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "Resumen del Sistema",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                uiState.error?.let {
+                    Text(text = "Modo Offline: $it", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
+                }
 
-                // Tarjeta 1: Valor del Inventario
+                // Métrica de la Nube (Ingresos Reales Históricos)
                 KpiCard(
-                    titulo = "Valor del Inventario",
-                    valor = "$${String.format("%.2f", uiState.valorTotalInventario)}",
+                    titulo = "Ingresos Históricos Totales",
+                    valor = "$${String.format(Locale.getDefault(), "%.2f", uiState.ingresosTotalesNube)}",
                     icono = Icons.Default.AttachMoney,
                     colorFondo = MaterialTheme.colorScheme.primaryContainer,
                     colorTexto = MaterialTheme.colorScheme.onPrimaryContainer
                 )
 
-                // Tarjeta 2: Total de Productos
-                KpiCard(
-                    titulo = "Productos en Catálogo",
-                    valor = "${uiState.totalProductosRegistrados} ítems",
-                    icono = Icons.Default.Inventory,
-                    colorFondo = MaterialTheme.colorScheme.secondaryContainer,
-                    colorTexto = MaterialTheme.colorScheme.onSecondaryContainer
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Métrica Local (Alertas de Stock)
+                    Box(modifier = Modifier.weight(1f)) {
+                        KpiCard(
+                            titulo = "Alertas Stock",
+                            valor = "${uiState.productosBajoStock}",
+                            icono = Icons.Default.Warning,
+                            colorFondo = if (uiState.productosBajoStock > 0) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer,
+                            colorTexto = if (uiState.productosBajoStock > 0) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                    // Métrica Local (Catálogo Activo)
+                    Box(modifier = Modifier.weight(1f)) {
+                        KpiCard(
+                            titulo = "Catálogo",
+                            valor = "${uiState.totalProductosLocales}",
+                            icono = Icons.Default.Inventory,
+                            colorFondo = MaterialTheme.colorScheme.secondaryContainer,
+                            colorTexto = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider()
+
+                Text(
+                    text = "Tendencia de Ventas (Últimos 7 días)",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                 )
 
-                // Tarjeta 3: Alertas de Stock
-                KpiCard(
-                    titulo = "Alertas de Bajo Stock",
-                    valor = "${uiState.productosBajoStock} productos",
-                    icono = Icons.Default.Warning,
-                    colorFondo = if (uiState.productosBajoStock > 0) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer,
-                    colorTexto = if (uiState.productosBajoStock > 0) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer
+                if (uiState.ventasPorDia.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Gráfica de Barras", style = MaterialTheme.typography.labelMedium)
+                            VentasBarChart(ventas = uiState.ventasPorDia)
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Text("Gráfica de Líneas", style = MaterialTheme.typography.labelMedium)
+                            VentasLineChart(ventas = uiState.ventasPorDia)
+                        }
+                    }
+                } else {
+                    Text("No hay datos recientes para graficar.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                // Sección de la Nube: Top 5 Productos
+                Text(
+                    text = "Top 5 Más Vendidos",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp)
                 )
+
+                if (uiState.topProductos.isEmpty()) {
+                    Text("No hay suficientes datos de ventas aún.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    uiState.topProductos.forEach { producto ->
+                        TopProductoItem(producto.nombre, producto.total_vendido)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(64.dp)) // Espacio para que el menú inferior no tape
             }
+        }
+    }
+}
+
+@Composable
+fun TopProductoItem(nombre: String, cantidad: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = nombre, fontWeight = FontWeight.Bold)
+            }
+            Text(text = "$cantidad uds", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
         }
     }
 }
