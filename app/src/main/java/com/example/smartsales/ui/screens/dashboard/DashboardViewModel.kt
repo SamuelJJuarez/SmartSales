@@ -6,6 +6,7 @@ import com.example.smartsales.data.remote.dto.ProductoTopDto
 import com.example.smartsales.data.remote.dto.VentaDiaDto
 import com.example.smartsales.domain.repository.DashboardRepository
 import com.example.smartsales.domain.repository.ProductoRepository
+import com.example.smartsales.util.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +29,8 @@ data class DashboardState(
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val productoRepository: ProductoRepository,
-    private val dashboardRepository: DashboardRepository // Inyectamos el nuevo repo
+    private val dashboardRepository: DashboardRepository, // Inyectamos el nuevo repo
+    private val notificationHelper: NotificationHelper
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardState())
@@ -48,7 +50,8 @@ class DashboardViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             ingresosTotalesNube = datosNube.ingresos_totales,
-                            topProductos = datosNube.productos_top
+                            topProductos = datosNube.productos_top,
+                            ventasPorDia = datosNube.ventas_por_dia
                         )
                     }
                 }
@@ -59,6 +62,15 @@ class DashboardViewModel @Inject constructor(
             // 2. Cargamos datos locales (Stock y Alertas)
             productoRepository.obtenerProductosLocales().collect { lista ->
                 val bajoStock = lista.count { it.stock < 10 && it.activo }
+
+                if (bajoStock > 0) {
+                    notificationHelper.mostrarNotificacion(
+                        titulo = "Alerta de Inventario",
+                        mensaje = "Tienes $bajoStock producto(s) con bajo stock.",
+                        notificationId = 999
+                    )
+                }
+
                 _uiState.update {
                     it.copy(
                         totalProductosLocales = lista.filter { p -> p.activo }.size,

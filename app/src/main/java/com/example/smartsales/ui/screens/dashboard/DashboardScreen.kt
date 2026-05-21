@@ -20,14 +20,29 @@ import androidx.navigation.NavController
 import com.example.smartsales.ui.components.VentasBarChart
 import com.example.smartsales.ui.components.VentasLineChart
 import java.util.Locale
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import android.Manifest
+import android.os.Build
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.isGranted
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun DashboardScreen(
     navController: NavController,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val notificationPermissionState = rememberPermissionState(Manifest.permission.POST_NOTIFICATIONS)
+
+        LaunchedEffect(Unit) {
+            if (!notificationPermissionState.status.isGranted) {
+                notificationPermissionState.launchPermissionRequest()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {

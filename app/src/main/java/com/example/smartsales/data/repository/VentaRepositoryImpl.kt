@@ -9,12 +9,14 @@ import com.example.smartsales.data.remote.dto.DetalleVentaDto
 import com.example.smartsales.data.remote.dto.VentaRequest
 import com.example.smartsales.domain.repository.VentaRepository
 import com.example.smartsales.util.NetworkUtils
+import com.example.smartsales.util.NotificationHelper
 import javax.inject.Inject
 
 class VentaRepositoryImpl @Inject constructor(
     private val ventaDao: VentaDao,
     private val api: SmartSalesApi,
-    private val networkUtils: NetworkUtils
+    private val networkUtils: NetworkUtils,
+    private val notificationHelper: NotificationHelper
 ) : VentaRepository {
 
     override suspend fun registrarVenta(detalles: List<DetalleVentaEntity>, total: Double): Result<Unit> {
@@ -71,7 +73,12 @@ class VentaRepositoryImpl @Inject constructor(
             if (response.isSuccessful) {
                 // Si el servidor responde 201 Created, actualizamos la base de datos local
                 ventaDao.marcarComoSincronizada(idLocal)
-                Log.d("VentaRepository", "Venta $idLocal subida con éxito")
+                // Disparar notificación
+                notificationHelper.mostrarNotificacion(
+                    titulo = "Sincronización Exitosa",
+                    mensaje = "Se sincronizaron tus ventas con el servidor.",
+                    notificationId = idLocal
+                )
             }
         } catch (e: Exception) {
             Log.e("VentaRepository", "Falló la subida al servidor, se intentará luego. Error: ${e.message}")
